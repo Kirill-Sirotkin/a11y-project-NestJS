@@ -24,7 +24,7 @@ model User {
   name         String?
   organization String?
   password     String
-  salt         String
+  isActive     Boolean  @default(true)
   role         Role     @default(USER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
