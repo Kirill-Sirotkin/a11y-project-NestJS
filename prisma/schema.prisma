@@ -30,6 +30,7 @@ model User {
   organization String?
   password     String
   isActive     Boolean            @default(true)
+  isVerified   Boolean            @default(false)
   role         Role               @default(USER)
   subscription SubscriptionStatus @default(BASE)
   createdAt    DateTime           @default(now())
