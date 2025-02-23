@@ -1,5 +1,4 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { AuthDto } from 'src/auth/dto/auth.dto';
 import { DatabaseService } from 'src/services/database/database.service';
 import * as argon2 from 'argon2';

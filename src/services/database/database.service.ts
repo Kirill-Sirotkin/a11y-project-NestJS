@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient, User, Report } from '@prisma/client';
 import * as argon2 from 'argon2';
 
@@ -32,7 +32,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
       });
     }
 
-    async postUser(data: { email: string, password: string }): Promise<User | Error> {
+    async postUser(data: { email: string, password: string }): Promise<User> {
       try {
         const hash = await argon2.hash(data.password);
         return this.user.create({
@@ -42,8 +42,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
         }
       });
       } catch (err) {
-        console.log(err)
-        return err;
+        throw new InternalServerErrorException("[ERROR] failed to create user: ", err);
       }
     }
 

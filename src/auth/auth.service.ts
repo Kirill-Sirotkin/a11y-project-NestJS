@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/services/database/database.service';
 import { AuthDto } from './dto/auth.dto';
 import { User } from '@prisma/client';
@@ -12,23 +12,15 @@ export class AuthService {
     ) {}
 
     async register(data: AuthDto) {
-        const dbUser = await this.databaseService.postUser(data);
-        if (dbUser instanceof Error) {
-            // error
-            return dbUser;
-        }
-
-        return this.generateToken(dbUser);
+        const user = await this.databaseService.postUser(data);
+        return this.generateToken(user);
     }
 
     async login(email: string) {
-        // return new token
         const user = await this.databaseService.getUserByEmail(email);
         if (user === null) {
-            // null user by email
-            return user;
+            throw new BadRequestException("[ERROR] user not found");
         }
-        
         return this.generateToken(user);
     }
 
@@ -44,7 +36,6 @@ export class AuthService {
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };
-
         return this.jwtService.signAsync(payload);
     }
 }
