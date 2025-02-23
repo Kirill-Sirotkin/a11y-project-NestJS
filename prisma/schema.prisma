@@ -47,7 +47,7 @@ model User {
 model Report {
   id        String       @id @default(uuid())
   domain    String
-  fileName  String
+  fileName  String?
   status    ReportStatus @default(PENDING)
   author    User         @relation(fields: [authorId], references: [id])
   authorId  String
