@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthDto } from 'src/auth/dto/auth.dto';
+import { AuthDto } from 'src/modules/auth/dto/auth.dto';
 import { DatabaseService } from 'src/services/database/database.service';
 import * as argon2 from 'argon2';
 import { Request } from 'express';
@@ -10,7 +10,7 @@ export class AuthLoginService implements CanActivate {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
       const request = context.switchToHttp().getRequest();
-      const body = await this.extractAuthDataFromBody(request);
+      const body = this.extractAuthDataFromBody(request);
       if (!body) {
         throw new UnauthorizedException();
       }
@@ -27,7 +27,7 @@ export class AuthLoginService implements CanActivate {
       }
     }
 
-    private async extractAuthDataFromBody(request: Request): Promise<AuthDto | null> {
+    private extractAuthDataFromBody(request: Request): AuthDto | null {
       if (request.body === null) return null
       const body = request.body
       return body
