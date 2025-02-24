@@ -1,5 +1,5 @@
-import { Injectable, InternalServerErrorException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, User, Report } from '@prisma/client';
+import { Injectable, InternalServerErrorException, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { PrismaClient, User, Report, ReportStatus } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 @Injectable()
@@ -42,7 +42,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
         }
       });
       } catch (err) {
-        throw new InternalServerErrorException("[ERROR] failed to create user: ", err);
+        throw new InternalServerErrorException("[ERROR] failed to create user: " + err);
       }
     }
 
@@ -53,6 +53,26 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
     async getReportById(id: string): Promise<Report | null> {
       return this.report.findUnique({
         where: { id },
+      });
+    }
+
+    async postReport(data: { userId: string, domain: string }): Promise<Report> {
+      if (!await this.user.findUnique({ where: { id: data.userId } })) 
+        throw new NotFoundException("[ERROR] cannot create report for user " + data.userId + ": user not found");
+      return this.report.create({
+        data: {
+          domain: data.domain,
+          author: {
+            connect: { id: data.userId },
+          },
+        },
+      });
+    }
+
+    async patchReport(id: string, data: { fileName: string, status: ReportStatus }): Promise<Report> {
+      return this.report.update({
+        where: { id },
+        data,
       });
     }
 }

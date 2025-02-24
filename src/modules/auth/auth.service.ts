@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/services/database/database.service';
 import { AuthDto } from './dto/auth.dto';
 import { User } from '@prisma/client';
@@ -19,7 +19,7 @@ export class AuthService {
     async login(email: string) {
         const user = await this.databaseService.getUserByEmail(email);
         if (user === null) {
-            throw new BadRequestException("[ERROR] user not found");
+            throw new NotFoundException("[ERROR] user not found");
         }
         return this.generateToken(user);
     }
