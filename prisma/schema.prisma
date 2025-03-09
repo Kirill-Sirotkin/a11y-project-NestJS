@@ -29,17 +29,18 @@ enum ReportStatus {
 }
 
 model User {
-  id           String             @id @default(uuid())
-  email        String             @unique
-  name         String?
-  organization String?
-  password     String
-  isActive     Boolean            @default(true)
-  isVerified   Boolean            @default(false)
-  role         Role               @default(USER)
-  subscription SubscriptionStatus @default(BASE)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id               String             @id @default(uuid())
+  email            String             @unique
+  name             String?
+  organization     String?
+  password         String
+  isActive         Boolean            @default(true)
+  isVerified       Boolean            @default(false)
+  role             Role               @default(USER)
+  subscription     SubscriptionStatus @default(BASE)
+  remainingReports Int                @default(5)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   reports Report[]
 }

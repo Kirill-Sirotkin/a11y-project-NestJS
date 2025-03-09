@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, User, Report, ReportStatus } from '@prisma/client';
+import { PrismaClient, User, Report, ReportStatus, SubscriptionStatus } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 @Injectable()
@@ -46,6 +46,20 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
       }
     }
 
+    async patchUser(id: string, data: { 
+      name?: string, 
+      organization?: string, 
+      isActive?: boolean,
+      isVerified?: boolean,
+      subscriptionStatus?: SubscriptionStatus,
+      remainingReports?: number,
+    }): Promise<User> {
+      return this.user.update({
+        where: { id },
+        data,
+      });
+    }
+
     async getReports(): Promise<Report[]> {
       return this.report.findMany();
     }
@@ -53,6 +67,15 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
     async getReportById(id: string): Promise<Report | null> {
       return this.report.findUnique({
         where: { id },
+      });
+    }
+
+    async getUserReports(id: string): Promise<Report[] | null> {
+      return this.report.findMany({
+        where: { authorId: id },
+        orderBy: {
+          createdAt: "desc"
+        }
       });
     }
 

@@ -7,9 +7,19 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseService } from './services/database/database.service';
 import { ReportModule } from './modules/report/report.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
-  imports: [ConfigModule.forRoot(), AuthModule, ReportModule],
+  imports: [ConfigModule.forRoot(), AuthModule, ReportModule, ServeStaticModule.forRoot({
+    rootPath: join(__dirname, '..', 'reports'),
+    serveRoot: '/reports',
+    serveStaticOptions: {
+      setHeaders: (res, path, stat) => {
+        res.setHeader('Content-Type', 'application/pdf')
+      }
+    }
+  })],
   controllers: [AppController],
   providers: [AppService, AuthLoginService, AuthJwtService, DatabaseService],
 })

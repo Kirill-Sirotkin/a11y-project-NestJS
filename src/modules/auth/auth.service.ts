@@ -13,7 +13,9 @@ export class AuthService {
 
     async register(data: AuthDto) {
         const user = await this.databaseService.postUser(data);
-        return this.generateToken(user);
+        const tokenString = await this.generateToken(user)
+        const tokenJson = {token: tokenString}
+        return tokenJson;
     }
 
     async login(email: string) {
@@ -21,7 +23,9 @@ export class AuthService {
         if (user === null) {
             throw new NotFoundException("[ERROR] user not found");
         }
-        return this.generateToken(user);
+        const tokenString = await this.generateToken(user)
+        const tokenJson = {token: tokenString}
+        return tokenJson;
     }
 
     private async generateToken(user: User): Promise<string> {

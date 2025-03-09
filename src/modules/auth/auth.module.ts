@@ -9,7 +9,7 @@ import { DatabaseService } from 'src/services/database/database.service';
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '30s' },
+      signOptions: { expiresIn: '60s' },
     })
   ],
   controllers: [AuthController],
