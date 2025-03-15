@@ -4,10 +4,8 @@ import { DatabaseService } from 'src/services/database/database.service';
 import { AxeBuilder } from '@axe-core/webdriverjs';
 import { Builder } from 'selenium-webdriver';
 import * as chrome from 'selenium-webdriver/chrome';
-import * as fs from 'fs';
 import { AxeResults } from 'axe-core';
 import jsPDF from 'jspdf';
-import { join } from 'path';
 
 @Injectable()
 export class ReportService {
@@ -17,7 +15,7 @@ export class ReportService {
         const report = await this.databaseService.postReport({ userId, domain });
         const user = await this.databaseService.getUserById(userId);
         if (user === null) throw new NotFoundException("[ERROR] user not found");
-        if (user.remainingReports <= 0) throw new InternalServerErrorException("[ERROR] user has no remaining reports");
+        // if (user.remainingReports <= 0) throw new InternalServerErrorException("[ERROR] user has no remaining reports");
         
         const opts = new chrome.Options();
         opts.addArguments('--headless')

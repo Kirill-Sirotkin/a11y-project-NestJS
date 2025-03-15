@@ -9,9 +9,11 @@ import { DatabaseService } from './services/database/database.service';
 import { ReportModule } from './modules/report/report.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { AuthAlphaModule } from './modules/auth-alpha/auth-alpha.module';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
-  imports: [ConfigModule.forRoot(), AuthModule, ReportModule, ServeStaticModule.forRoot({
+  imports: [ConfigModule.forRoot(), ReportModule, AuthAlphaModule, ServeStaticModule.forRoot({
     rootPath: join(__dirname, '..', 'reports'),
     serveRoot: '/reports',
     serveStaticOptions: {

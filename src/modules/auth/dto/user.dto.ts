@@ -1,4 +1,4 @@
-import { Role, SubscriptionStatus, User } from "@prisma/client";
+import { Role, SubscriptionStatus } from "@prisma/client";
 
 // export class UserDto implements User {
 export class UserDto {

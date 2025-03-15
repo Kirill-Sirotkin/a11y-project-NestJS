@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 export class AuthService {
     constructor(
         private readonly databaseService: DatabaseService,
-        private readonly jwtService: JwtService
+        private jwtService: JwtService,
     ) {}
 
     async register(data: AuthDto) {
@@ -27,19 +27,19 @@ export class AuthService {
         const tokenJson = {token: tokenString}
         return tokenJson;
     }
-
-    private async generateToken(user: User): Promise<string> {
-        const payload = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            organization: user.organization,
-            isVerified: user.isVerified,
-            role: user.role,
-            subscription: user.subscription,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-        };
-        return this.jwtService.signAsync(payload);
-    }
+        
+        private async generateToken(user: User): Promise<string> {
+            const payload = {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                organization: user.organization,
+                isVerified: user.isVerified,
+                role: user.role,
+                subscription: user.subscription,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+            };
+            return this.jwtService.signAsync(payload);
+        }
 }
