@@ -26,6 +26,7 @@ enum SubscriptionStatus {
 enum ReportStatus {
   PENDING
   COMPLETED
+  FAILED
 }
 
 model User {

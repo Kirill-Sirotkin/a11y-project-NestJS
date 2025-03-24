@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/services/database/database.service';
 import { AuthDto } from './dto/auth.dto';
 import { User } from '@prisma/client';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -10,6 +10,8 @@ export class AuthService {
         private readonly databaseService: DatabaseService,
         private jwtService: JwtService,
     ) {}
+    
+    private readonly logger = new Logger(AuthService.name);
 
     async register(data: AuthDto) {
         const user = await this.databaseService.postUser(data);
@@ -19,12 +21,15 @@ export class AuthService {
     }
 
     async login(email: string) {
+        this.logger.warn(`Attempting to login user with email: ${email}`);
         const user = await this.databaseService.getUserByEmail(email);
         if (user === null) {
+            this.logger.error(`Failed to login user with email: ${email}, user not found`);
             throw new NotFoundException("[ERROR] user not found");
         }
         const tokenString = await this.generateToken(user)
         const tokenJson = {token: tokenString}
+        this.logger.log(`Success to login user with email: ${email}`);
         return tokenJson;
     }
         
@@ -40,6 +45,7 @@ export class AuthService {
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
             };
-            return this.jwtService.signAsync(payload);
+            const opts: JwtSignOptions = { secret: process.env.JWT_SECRET, expiresIn: '14d' };
+            return this.jwtService.signAsync(payload, opts);
         }
 }

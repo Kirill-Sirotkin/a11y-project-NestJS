@@ -5,13 +5,13 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { DatabaseService } from 'src/services/database/database.service';
 
 @Module({
-  imports: [
-    JwtModule.register({
-      global: true,
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '60s' },
-    })
-  ],
+  // imports: [
+  //   JwtModule.register({
+  //     global: false,
+  //     secret: process.env.JWT_SECRET,
+  //     signOptions: { expiresIn: '60s' },
+  //   })
+  // ],
   controllers: [AuthController],
   providers: [AuthService, DatabaseService],
 })

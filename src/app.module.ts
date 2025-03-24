@@ -10,11 +10,18 @@ import { ReportModule } from './modules/report/report.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AuthAlphaModule } from './modules/auth-alpha/auth-alpha.module';
-import { JwtService } from '@nestjs/jwt';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 
 @Module({
-  imports: [ConfigModule.forRoot(), ReportModule, AuthAlphaModule, ServeStaticModule.forRoot({
-    rootPath: join(__dirname, '..', 'reports'),
+  imports: [ConfigModule.forRoot(), ReportModule, AuthAlphaModule, 
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '14d' },
+    }),
+    ServeStaticModule.forRoot({
+    // rootPath: join(__dirname, '..', 'reports'),
+    rootPath: join(__dirname, 'reports'),
     serveRoot: '/reports',
     serveStaticOptions: {
       setHeaders: (res, path, stat) => {

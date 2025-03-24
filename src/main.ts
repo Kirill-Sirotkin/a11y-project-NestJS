@@ -1,8 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import * as fs from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  //   const httpsOptions = {
+  //   key: fs.readFileSync('/etc/letsencrypt/live/a11y-project.duckdns.org/privkey.pem'),
+  //   cert: fs.readFileSync('/etc/letsencrypt/live/a11y-project.duckdns.org/fullchain.pem'),
+  // };
+  // const app = await NestFactory.create(AppModule, { httpsOptions, logger: ['error', 'warn', 'log', 'fatal'] });
+  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log', 'fatal'] });
   app.enableCors();
   await app.listen(process.env.PORT ?? 3000);
 }
