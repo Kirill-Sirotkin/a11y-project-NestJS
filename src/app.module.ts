@@ -11,6 +11,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AuthAlphaModule } from './modules/auth-alpha/auth-alpha.module';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import { ReportGenerationService } from './services/report-generation/report-generation.service';
 
 @Module({
   imports: [ConfigModule.forRoot(), ReportModule, AuthAlphaModule, 
@@ -20,8 +21,8 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
       signOptions: { expiresIn: '14d' },
     }),
     ServeStaticModule.forRoot({
-    // rootPath: join(__dirname, '..', 'reports'),
-    rootPath: join(__dirname, 'reports'),
+    rootPath: join(__dirname, '..', 'reports'),
+    // rootPath: join(__dirname, 'reports'),
     serveRoot: '/reports',
     serveStaticOptions: {
       setHeaders: (res, path, stat) => {
@@ -30,6 +31,6 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     }
   })],
   controllers: [AppController],
-  providers: [AppService, AuthLoginService, AuthJwtService, DatabaseService],
+  providers: [AppService, AuthLoginService, AuthJwtService, DatabaseService, ReportGenerationService],
 })
 export class AppModule {}

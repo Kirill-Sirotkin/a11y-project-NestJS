@@ -7,10 +7,14 @@ import { Builder, ThenableWebDriver } from 'selenium-webdriver';
 import * as chrome from 'selenium-webdriver/chrome';
 import { AxeResults } from 'axe-core';
 import jsPDF from 'jspdf';
+import { ReportGenerationService } from 'src/services/report-generation/report-generation.service';
 
 @Injectable()
 export class ReportService {
-    constructor(private readonly databaseService: DatabaseService) {}
+    constructor(
+        private readonly databaseService: DatabaseService,
+        private readonly reportGenerationService: ReportGenerationService
+    ) {}
             
     private readonly logger = new Logger(ReportService.name);
 
@@ -26,22 +30,21 @@ export class ReportService {
         const fileNamePdf = fileNameRaw + ".pdf"
 
         const userDataDir = `tempdir_${Date.now()}`
-        const userDataDirPath = `/home//${userDataDir}` // make .env variable for this
-        fs.mkdirSync(userDataDirPath, { recursive: true });
+        const userDataDirPath = `/${process.env.USER_DATA_DIR}/${userDataDir}`
+        //fs.mkdirSync(userDataDirPath, { recursive: true });
 
         let driver: ThenableWebDriver;
         try {
             const opts = new chrome.Options();
             this.logger.warn(`User data dir for this user: ${`--user-data-dir=${userDataDirPath}`}`)
-            opts.addArguments('--disable-extensions')
-            opts.addArguments('--headless')
-            opts.addArguments('--no-sandbox')
-            opts.addArguments('--disable-dev-shm-usage')
-            opts.addArguments('--incognito')
-            opts.addArguments('--disable-gpu')
-            opts.addArguments('--enable-unsafe-swiftshader')
-            opts.addArguments(`--user-data-dir=${userDataDirPath}`)
-            opts.addArguments(`--user-data-dir=${userDataDirPath}`, '--headless', '--no-sandbox', '--disable-dev-shm-usage', '--incognito', '--disable-gpu', '--enable-unsafe-swiftshader');
+            opts.addArguments(
+                `--user-data-dir=${userDataDirPath}`, 
+                '--headless', 
+                '--no-sandbox', 
+                '--disable-dev-shm-usage', 
+                '--incognito', 
+                '--disable-gpu', 
+            );
             driver = new Builder()
                 .forBrowser('chrome')
                 .setChromeOptions(opts)
@@ -61,15 +64,16 @@ export class ReportService {
             // saving json report as file, not needed right now
             // fs.writeFileSync(fileName, JSON.stringify(results, null, 2), "utf8");
 
-            const doc = new jsPDF();
+            // const doc = new jsPDF();
+            // doc.text("Report!", 10, 10);
+            // doc.text("Total violations: " + results.violations.length.toString(), 10, 20)
+            // results.violations.forEach((violation, i) => {
+                //     doc.text(violation.id, 10, 30 + i * 10)
+                // })
 
-            doc.text("Report!", 10, 10);
-            doc.text("Total violations: " + results.violations.length.toString(), 10, 20)
-            results.violations.forEach((violation, i) => {
-                doc.text(violation.id, 10, 30 + i * 10)
-            })
+            const doc = this.reportGenerationService.generateReport(results)
             doc.save(fileNamePdf);
-
+                
             reportResults = results
             await driver.quit();
         

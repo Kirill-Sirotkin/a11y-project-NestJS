@@ -3,9 +3,10 @@ import { ReportService } from './report.service';
 import { ReportController } from './report.controller';
 import { DatabaseService } from 'src/services/database/database.service';
 import { JwtService } from '@nestjs/jwt';
+import { ReportGenerationService } from 'src/services/report-generation/report-generation.service';
 
 @Module({
   controllers: [ReportController],
-  providers: [ReportService, DatabaseService],
+  providers: [ReportService, DatabaseService, ReportGenerationService],
 })
 export class ReportModule {}
