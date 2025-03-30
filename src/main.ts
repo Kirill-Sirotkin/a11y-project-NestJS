@@ -9,7 +9,7 @@ async function bootstrap() {
   // };
   // const app = await NestFactory.create(AppModule, { httpsOptions, logger: ['error', 'warn', 'log', 'fatal'] });
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log', 'fatal'] });
-  app.enableCors();
+  app.enableCors({ origin: ['http://localhost:3000', 'https://a11y-project-steel.vercel.app'] });
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
