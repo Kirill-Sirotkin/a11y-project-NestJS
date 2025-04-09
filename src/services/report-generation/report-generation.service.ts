@@ -52,7 +52,7 @@ export class ReportGenerationService {
             { align: 'center' }
         )
         page_Y_offset = newLine(doc, page_Y_offset, 3)
-        page_Y_offset = applyText(doc, page_Y_offset, INDENT_SPACING, COLOR_BLACK, FONT_SIZE_MEDIUM, "normal", "https://amazon.com")
+        page_Y_offset = applyText(doc, page_Y_offset, INDENT_SPACING, COLOR_BLACK, FONT_SIZE_MEDIUM, "normal", `${results.url}`)
         
         doc.setFontSize(FONT_SIZE_SMALL)
         doc.text(

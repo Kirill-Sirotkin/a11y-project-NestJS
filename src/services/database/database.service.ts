@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, User, Report, ReportStatus, SubscriptionStatus, AlphaKey } from '@prisma/client';
+import { PrismaClient, User, Report, ReportStatus, SubscriptionStatus, AlphaKey, FeedbackMessage } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 @Injectable()
@@ -114,5 +114,26 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
           },
         },
       })
+    }
+
+    async getFeedbackMessages(): Promise<FeedbackMessage[]> {
+      return this.feedbackMessage.findMany({
+        orderBy: {
+          createdAt: "asc"
+        }
+      });
+    }
+
+    async postFeedbackMesage(data: { userId: string, text: string }): Promise<FeedbackMessage> {
+      if (!await this.user.findUnique({ where: { id: data.userId } })) 
+        throw new NotFoundException("[ERROR] cannot add feedback message for user " + data.userId + ": user not found");
+      return this.feedbackMessage.create({
+        data: {
+          text: data.text,
+          user: {
+            connect: { id: data.userId },
+          },
+        },
+      });
     }
 }
