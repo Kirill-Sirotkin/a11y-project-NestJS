@@ -129,16 +129,16 @@ export class ReportService {
 
     private async analyzePage(domain: string, fileNamePdf: string, userId: string, user: User, report: Report) {
 
-        const userDataDir = `tempdir_${Date.now()}`
-        const userDataDirPath = `/${process.env.USER_DATA_DIR}/${userDataDir}`
-        fs.mkdirSync(userDataDirPath, { recursive: true });
+        // const userDataDir = `tempdir_${Date.now()}`
+        // const userDataDirPath = `/${process.env.USER_DATA_DIR}/${userDataDir}`
+        // fs.mkdirSync(userDataDirPath, { recursive: true });
 
         let driver: ThenableWebDriver;
         try {
             const opts = new chrome.Options();
-            this.logger.warn(`User data dir for this user: ${`--user-data-dir=${userDataDirPath}`}`)
+            // this.logger.warn(`User data dir for this user: ${`--user-data-dir=${userDataDirPath}`}`)
             opts.addArguments(
-                `--user-data-dir=${userDataDirPath}`, 
+                // `--user-data-dir=${userDataDirPath}`, 
                 '--headless=new', 
                 '--no-sandbox', 
                 '--disable-dev-shm-usage', 
