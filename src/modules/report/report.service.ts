@@ -131,7 +131,7 @@ export class ReportService {
 
         const userDataDir = `tempdir_${Date.now()}`
         const userDataDirPath = `/${process.env.USER_DATA_DIR}/${userDataDir}`
-        //fs.mkdirSync(userDataDirPath, { recursive: true });
+        fs.mkdirSync(userDataDirPath, { recursive: true });
 
         let driver: ThenableWebDriver;
         try {
