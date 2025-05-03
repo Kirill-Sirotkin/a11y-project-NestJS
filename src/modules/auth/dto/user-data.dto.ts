@@ -6,6 +6,7 @@ export class UserDataDto {
     firstName: string | null;
     lastName: string | null;
     organization: string | null;
+    isOAuth: boolean;
     isActive: boolean;
     isVerified: boolean;
     role: $Enums.Role;

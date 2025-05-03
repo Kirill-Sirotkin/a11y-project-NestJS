@@ -1,11 +1,13 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
+import { Request } from 'express';
+import { AuthService } from 'src/modules/auth/auth.service';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, "jwt-refresh") {
-  constructor() {
+  constructor(private readonly authService: AuthService) {
     const jwtSecret = process.env.JWT_REFRESH_SECRET;
     if (jwtSecret === undefined) {
         throw new Error('JWT_REFRESH_SECRET is not defined in the environment variables');
@@ -15,10 +17,19 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, "jwt-refresh"
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
+      passReqToCallback: true,
     });
   }
   
-  async validate(payload: JwtPayloadDto): Promise<JwtPayloadDto> {
+  async validate(req: Request, payload: JwtPayloadDto): Promise<JwtPayloadDto> {
+    const refreshToken = req.headers.authorization?.split(' ')[1];
+    if (!refreshToken) {
+      throw new UnauthorizedException('access token not found in request headers');
+    }
+    console.log(`JWT refresh Guard got refresh token: ${refreshToken}`)
+    
+    // console.log(`[SUB]: ${JSON.stringify(payload)}`)
+    await this.authService.validateUserJwtRefresh(payload.sub, refreshToken)
     return payload;
   }
 }

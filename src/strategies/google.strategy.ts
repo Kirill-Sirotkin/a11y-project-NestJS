@@ -1,11 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-google-oauth20";
+import { AuthService } from "src/modules/auth/auth.service";
 import { GoogleUserDataDto } from "src/modules/auth/dto/google-user-data.dto";
+import { UserDataDto } from "src/modules/auth/dto/user-data.dto";
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy) {
-    constructor() {
+    constructor(private readonly authService: AuthService) {
         const clientId = process.env.GOOGLE_OAUTH2_CLIENT_ID;
         if (clientId === undefined) {
             throw new Error('GOOGLE_OAUTH2_CLIENT_ID is not defined in the environment variables');
@@ -27,7 +29,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate(accessToken: string, refreshToken: string, profile: GoogleUserDataDto): Promise<string> {
-        return "google success"
+    async validate(
+        accessToken: string, 
+        refreshToken: string, 
+        profile: GoogleUserDataDto
+    ): Promise<UserDataDto> {
+        return await this.authService.validateUserGoogle(profile);
     }
 }
