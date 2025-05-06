@@ -26,7 +26,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, "jwt-access") 
     if (!accessToken) {
       throw new UnauthorizedException('access token not found in request headers');
     }
-    console.log(`JWT Access Guard got access token: ${accessToken}`)
+    // console.log(`JWT Access Guard got access token: ${accessToken}`)
 
     await this.authService.validateUserJwtAccess(payload.sub, accessToken)
     return payload;

@@ -7,17 +7,25 @@ import { UserDataDto } from './dto/user-data.dto';
 import { TokenPairDto } from './dto/token-pair.dto';
 import { AccessTokenDto } from './dto/access-token.dto';
 import { JwtPayloadDto } from './dto/jwt-payload.dto';
-import { Session } from '@prisma/client';
+import { ResetPasswordToken, Session, VerificationToken } from '@prisma/client';
 import { GoogleUserDataDto } from './dto/google-user-data.dto';
+import { ResendService } from 'nestjs-resend';
+import { RegisterDataDto } from './dto/register-data.dto';
+import { VerifyTokenDto } from './dto/verify-token.dto';
+import { JwtVerifyPayloadDto } from './dto/jwt-verify-payload.dto';
+import { ResetPasswordTokenDto } from './dto/reset-password-token.dto';
 
 @Injectable()
 export class AuthService {
     constructor(
         private readonly databaseService: DatabaseService,
         private readonly jwtService: JwtService,
+        private readonly resendService: ResendService
     ) {}
 
     async validateUserLocal(data: LoginDataDto): Promise<UserDataDto> {
+        // add isVerified check here OR create decorator
+
         const user = await this.databaseService.getUserByEmail(data.email);
         if (!user) {
             throw new NotFoundException('user with provided email not found');
@@ -85,6 +93,18 @@ export class AuthService {
         return userDto as UserDataDto
     }
 
+    async validateUserJwtVerify(userId: string, verifyToken: string): Promise<void> {
+        const verificationToken = await this.databaseService.getVerificationTokenByUserId(userId)
+        if (!verificationToken) {
+            throw new NotFoundException('verification token not found');
+        }
+
+        const isVerificationTokenValid = await argon2.verify(verificationToken.tokenHash, verifyToken);
+        if (!isVerificationTokenValid) {
+            throw new UnauthorizedException('verification token is invalid');
+        }
+    }
+
     async generateTokenPair(user: UserDataDto): Promise<TokenPairDto> {
         const payload: JwtPayloadDto = {
             sub: user.id,
@@ -129,16 +149,98 @@ export class AuthService {
         }
     }
 
-    async overrideAccessToken(userId: string, accessToken: string): Promise<void> {
-        try {
-            const accessTokenHash = await argon2.hash(accessToken);
-            await this.databaseService.overrideAccessToken(userId, accessTokenHash);
-        } catch (error) {
-            throw new InternalServerErrorException(`failed to override access token: ${error}`)
-        }
-    }
+    // async overrideAccessToken(userId: string, accessToken: string): Promise<void> {
+    //     try {
+    //         const accessTokenHash = await argon2.hash(accessToken);
+    //         await this.databaseService.overrideAccessToken(userId, accessTokenHash);
+    //     } catch (error) {
+    //         throw new InternalServerErrorException(`failed to override access token: ${error}`)
+    //     }
+    // }
 
     async deleteSession(userId: string): Promise<Session> {
         return this.databaseService.deleteSession(userId);
+    }
+
+    async registerLocalUser(data: RegisterDataDto): Promise<UserDataDto> {
+        try {
+            const passwordHashNew = await argon2.hash(data.password);
+            const user = await this.databaseService.createUser(data.email, passwordHashNew, false, false);
+            const { passwordHash, ...userDto } = user;
+            const { verifyToken } = await this.generateVerifyToken(userDto.id);
+            const tokenHash = await argon2.hash(verifyToken);
+            this.databaseService.overrideVerificationToken(userDto.id, tokenHash);
+    
+            await this.resendService.send({
+                from: 'no-reply@a11y-server.xyz',
+                to: userDto.email,
+                subject: 'A11yReport Email Verification',
+                text: `Please verify your email by clicking the link:\n\n${process.env.VERIFICATION_CALLBACK_URL}?verificationToken=${verifyToken}`,
+            });
+            
+            return userDto as UserDataDto
+        } catch (error) {
+            throw new InternalServerErrorException(`failed to register new user: ${error}`)
+        }
+    }
+
+    async generateVerifyToken(userId: string): Promise<VerifyTokenDto> {
+        const payload: JwtVerifyPayloadDto = {
+            sub: userId,
+        }
+
+        const verifyToken = this.jwtService.sign(payload, {
+            expiresIn: process.env.JWT_VERIFY_EXPIRES_IN,
+            secret: process.env.JWT_VERIFY_SECRET,
+        })
+
+        return { verifyToken }
+    }
+
+    async confirmEmailVerification(userId: string): Promise<UserDataDto> {
+        const user = await this.databaseService.getUserById(userId);
+        if (!user) {
+            throw new NotFoundException('user not found');
+        }
+
+        const updatedUser = await this.databaseService.updateUserIsVerified(userId, true);
+        const { passwordHash, ...userDto } = updatedUser;
+        return userDto as UserDataDto
+    }
+
+    async resendEmailVerification(userId: string, verifyToken: string): Promise<void> {
+        try {
+            const user = await this.databaseService.getUserById(userId);
+            if (!user) {
+                throw new NotFoundException('user not found');
+            }
+
+            console.log(`userId: ${userId}, userEmail: ${user.email}, verifyToken: ${verifyToken}`)
+
+            const tokenHash = await argon2.hash(verifyToken);
+            await this.databaseService.overrideVerificationToken(userId, tokenHash);
+            
+            await this.resendService.send({
+                from: 'no-reply@a11y-server.xyz',
+                to: user.email,
+                subject: 'A11yReport Email Verification',
+                text: `Please verify your email by clicking the link:\n\n${process.env.VERIFICATION_CALLBACK_URL}?verificationToken=${verifyToken}`,
+            });
+        } catch (error) {
+            throw new InternalServerErrorException(`failed to override verification token: ${error}`)
+        }
+    }
+
+    async generateResetPasswordToken(userId: string): Promise<ResetPasswordTokenDto> {
+        const payload: JwtVerifyPayloadDto = {
+            sub: userId,
+        }
+
+        const resetPasswordToken = this.jwtService.sign(payload, {
+            expiresIn: process.env.JWT_VERIFY_EXPIRES_IN,
+            secret: process.env.JWT_VERIFY_SECRET,
+        })
+
+        return { resetPasswordToken }
     }
 }

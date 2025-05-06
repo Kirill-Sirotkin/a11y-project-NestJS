@@ -26,7 +26,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, "jwt-refresh"
     if (!refreshToken) {
       throw new UnauthorizedException('access token not found in request headers');
     }
-    console.log(`JWT refresh Guard got refresh token: ${refreshToken}`)
+    // console.log(`JWT refresh Guard got refresh token: ${refreshToken}`)
     
     // console.log(`[SUB]: ${JSON.stringify(payload)}`)
     await this.authService.validateUserJwtRefresh(payload.sub, refreshToken)

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, User, Report, Session, Prisma } from '@prisma/client';
+import { PrismaClient, User, Report, Session, Prisma, VerificationToken, ResetPasswordToken } from '@prisma/client';
 
 @Injectable()
 export class DatabaseService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -64,51 +64,80 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
         })
     }
 
+    async updateUserIsVerified(
+        id: string, 
+        isVerified: boolean
+    ): Promise<User> {
+        return this.user.update({
+            where: { id },
+            data: {
+                isVerified
+            }
+        })
+    }
+
+    async updateUserPasswordHash(
+        id: string, 
+        passwordHash: string
+    ): Promise<User> {
+        return this.user.update({
+            where: { id },
+            data: {
+                passwordHash
+            }
+        })
+    }
+
     async overrideSession(
         userId: string, 
         accessTokenHash: string, 
         refreshTokenHash: string
     ): Promise<Session> {
-        const session = await this.session.findFirst({
-            where: { userId },
-        });
+        return this.$transaction(async (prisma) => {
+            const session = await this.session.findFirst({
+                where: { userId },
+            });
 
-        if (session) {
-            return this.session.update({
-                where: { id: session.id },
+            console.log(`old session: ${JSON.stringify(session)}`)
+            console.log(`new hashes: ${JSON.stringify({accessTokenHash, refreshTokenHash})}`)
+
+            if (session) {
+                return this.session.update({
+                    where: { id: session.id },
+                    data: {
+                        accessTokenHash,
+                        refreshTokenHash,
+                    },
+                });
+            }
+
+            return this.session.create({
                 data: {
                     accessTokenHash,
                     refreshTokenHash,
-                },
-            });
-        }
-
-        return this.session.create({
-            data: {
-                accessTokenHash,
-                refreshTokenHash,
-                user: {
-                    connect: { id: userId}
-                }
-            },
-        });
-    }
-
-    async overrideAccessToken(
-        userId: string, 
-        accessTokenHash: string
-    ): Promise<Session> {
-        return this.$transaction(async (prisma) => {
-            const session = await this.getSessionByUserId(userId);
-    
-            return this.session.update({
-                where: { id: session.id },
-                data: {
-                    accessTokenHash,
+                    user: {
+                        connect: { id: userId}
+                    }
                 },
             });
         })
     }
+
+    // async overrideAccessToken(
+    //     userId: string, 
+    //     accessTokenHash: string
+    // ): Promise<Session> {
+    //     return this.$transaction(async (prisma) => {
+    //         const session = await this.getSessionByUserId(userId);
+    
+    //         return this.session.update({
+    //             where: { id: session.id },
+    //             data: {
+    //                 accessTokenHash,
+    //             },
+    //         });
+    //     })
+    // }
 
     async deleteSession(userId: string): Promise<Session> {
         const session = await this.getSessionByUserId(userId);
@@ -128,5 +157,93 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
         }
 
         return session;
+    }
+
+    async getVerificationTokenByUserId(userId: string): Promise<VerificationToken> {
+        const token = await this.verificationToken.findFirst({
+            where: { userId },
+        });
+
+        if (!token) {
+            throw new NotFoundException("verification token not found");
+        }
+
+        return token;
+    }
+
+    async overrideVerificationToken(
+        userId: string,
+        tokenHash: string,
+    ): Promise<VerificationToken> {
+        return this.$transaction(async (prisma) => {
+            const verificationToken = await this.verificationToken.findFirst({
+                where: { userId },
+            });
+
+            console.log(`old verification token: ${JSON.stringify(verificationToken)}`)
+            console.log(`new hash: ${JSON.stringify({tokenHash})}`)
+
+            if (verificationToken) {
+                return this.verificationToken.update({
+                    where: { id: verificationToken.id },
+                    data: {
+                        tokenHash,
+                    }
+                })
+            }
+
+            return this.verificationToken.create({
+                data: {
+                    tokenHash,
+                    user: {
+                        connect: { id: userId },
+                    }
+                }
+            })
+        })
+    }
+
+    async getResetPasswordTokenByUserId(userId: string): Promise<ResetPasswordToken> {
+        const token = await this.resetPasswordToken.findFirst({
+            where: { userId },
+        });
+
+        if (!token) {
+            throw new NotFoundException("reset password token not found");
+        }
+
+        return token;
+    }
+
+    async overrideResetPasswordToken(
+        userId: string,
+        tokenHash: string,
+    ): Promise<ResetPasswordToken> {
+        return this.$transaction(async (prisma) => {
+            const resetPasswordToken = await this.resetPasswordToken.findFirst({
+                where: { userId },
+            });
+
+            console.log(`old reset password token: ${JSON.stringify(resetPasswordToken)}`)
+            console.log(`new hash: ${JSON.stringify({tokenHash})}`)
+
+            if (resetPasswordToken) {
+                return this.resetPasswordToken.update({
+                    where: { id: resetPasswordToken.id },
+                    data: {
+                        tokenHash,
+                    }
+                })
+            }
+
+            return this.resetPasswordToken.create({
+                data: {
+                    tokenHash,
+                    user: {
+                        connect: { id: userId },
+                    }
+                }
+            })
+        })
     }
 }

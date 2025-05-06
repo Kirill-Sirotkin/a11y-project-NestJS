@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAccessStrategy } from 'src/strategies/jwt-access.strategy';
 import { JwtRefreshStrategy } from 'src/strategies/jwt-refresh.strategy';
 import { GoogleStrategy } from 'src/strategies/google.strategy';
+import { JwtVerifyStrategy } from 'src/strategies/jwt-verify.strategy';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { GoogleStrategy } from 'src/strategies/google.strategy';
     LocalStrategy, 
     JwtAccessStrategy, 
     JwtRefreshStrategy, 
+    JwtVerifyStrategy,
     GoogleStrategy
   ],
 })
