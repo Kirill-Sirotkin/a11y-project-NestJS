@@ -230,4 +230,50 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
             })
         })
     }
+
+    async createReport(
+        userId: string, 
+        domain: string,
+    ): Promise<Report> {
+        return this.report.create({
+            data: {
+                domain,
+                user: {
+                    connect: { id: userId },
+                }
+            }
+        })
+    }
+
+    async getUserReportsByUserId(userId: string): Promise<Report[]> {
+        return this.report.findMany({
+            where: { userId },
+            orderBy: { createdAt: "desc" }
+        })
+    }
+
+    async getReportUserById(reportId: string): Promise<User> {
+        const report = await this.report.findUnique({
+            where: { id: reportId },
+            include: { user: true },
+        });
+
+        if (!report) {
+            throw new NotFoundException('report not found');
+        }
+
+        return report.user
+    }
+
+    async getReportById(id: string): Promise<Report> {
+        const report = await this.report.findUnique({
+            where: { id },
+        })
+
+        if (!report) {
+            throw new NotFoundException('report not found');
+        }
+
+        return report
+    }
 }
