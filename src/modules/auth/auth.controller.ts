@@ -1,15 +1,16 @@
-import { Request, Controller, Post, UseGuards, HttpStatus, HttpCode, Get, Delete, Response, Body } from '@nestjs/common';
+import { Request, Controller, Post, UseGuards, HttpStatus, HttpCode, Get, Delete, Response, Body, Patch } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { TokenPairDto } from './dto/token-pair.dto';
-import { AccessTokenDto } from './dto/access-token.dto';
+import { AccessTokenDto } from '../token-generation/dto/access-token.dto';
 import { LocalAuthGuard } from 'src/guards/local-auth.guard';
-import { JwtAccessAuthGuard } from 'src/guards/jwt-access-auth.guard';
 import { JwtRefreshAuthGuard } from 'src/guards/jwt-refresh-auth.guard';
 import { GoogleAuthGuard } from 'src/guards/google-auth.guard';
 import { Public } from 'src/decorators/public.decorator';
 import { RegisterDataDto } from './dto/register-data.dto';
-import { UserDataDto } from './dto/user-data.dto';
 import { JwtVerifyAuthGuard } from 'src/guards/jwt-verify-auth.guard';
+import { ResetPasswordDataDto } from './dto/reset-password-data.dto';
+import { ResetPasswordEmailDataDto } from './dto/reset-password-email-data.dto';
+import { JwtResetPasswordAuthGuard } from 'src/guards/jwt-reset-password-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -18,27 +19,23 @@ export class AuthController {
   @Public()
   @Post('register')
   async register(@Body() data: RegisterDataDto): Promise<TokenPairDto> {
-    const user = await this.authService.registerLocalUser(data);
-    const tokenPair = await this.authService.generateTokenPair(user);
-    await this.authService.overrideSession(user.id, tokenPair.accessToken, tokenPair.refreshToken);
-    return tokenPair
+    console.log(`register data: ${JSON.stringify(data)}`);
+    return await this.authService.register(data)
   }
 
   @Public()
   @UseGuards(JwtVerifyAuthGuard)
-  @Get('verify')
-  async verify(@Request() req): Promise<boolean> {
-    console.log(`req user: ${JSON.stringify(req.user)}`)
-    await this.authService.confirmEmailVerification(req.user.sub);
-    return true
+  @HttpCode(HttpStatus.OK)
+  @Patch('verify/callback')
+  async verifyCallback(@Request() req): Promise<boolean> {
+    console.log(`verify user: ${JSON.stringify(req.user)}`);
+    return await this.authService.verify(req.user.sub)
   }
 
-  @Get('verify/new-link')
+  @Get('verify/resend')
   async resendVerification(@Request() req): Promise<boolean> {
-    console.log(`req user: ${JSON.stringify(req.user)}`)
-    const token = await this.authService.generateVerifyToken(req.user.sub);
-    await this.authService.resendEmailVerification(req.user.sub, token.verifyToken);
-    return true
+    console.log(`resendVerification user: ${JSON.stringify(req.user)}`);
+    return await this.authService.resendVerification(req.user.sub)
   }
 
   @Public()
@@ -46,9 +43,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Request() req): Promise<TokenPairDto> {
-    const tokenPair = await this.authService.generateTokenPair(req.user);
-    await this.authService.overrideSession(req.user.id, tokenPair.accessToken, tokenPair.refreshToken);
-    return tokenPair
+    console.log(`login user: ${JSON.stringify(req.user)}`);
+    return await this.authService.login(req.user.id)
   }
 
   @Public()
@@ -56,16 +52,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
   async refresh(@Request() req): Promise<AccessTokenDto> {
-    const tokenPair = await this.authService.generateTokenPair(req.user);
-    await this.authService.overrideSession(req.user.id, tokenPair.accessToken, tokenPair.refreshToken);
-    return tokenPair
+    console.log(`refresh user: ${JSON.stringify(req.user)}`);
+    return await this.authService.refresh(req.user.sub)
   }
 
   @HttpCode(HttpStatus.OK)
   @Delete('logout')
   async logout(@Request() req): Promise<boolean> {
-    await this.authService.deleteSession(req.user.sub);
-    return true
+    console.log(`logout user: ${JSON.stringify(req.user)}`);
+    return await this.authService.logout(req.user.sub)
   }
 
   @Public()
@@ -77,10 +72,25 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @Get('google/callback')
   async googleCallback(@Request() req, @Response() res): Promise<void> {
-    const tokenPair = await this.authService.generateTokenPair(req.user);
-    console.log(`Google OAuth token pair: ${JSON.stringify(tokenPair)}`)
-    await this.authService.overrideSession(req.user.id, tokenPair.accessToken, tokenPair.refreshToken);
-    // redirect to frontend with token in query params
+    console.log(`googleCallback user: ${JSON.stringify(req.user)}`);
+    const tokenPair = await this.authService.googleCallback(req.user.sub);
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback?accessToken=${tokenPair.accessToken}&refreshToken=${tokenPair.refreshToken}`);
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('password/reset')
+  async resetPassword(@Body() data: ResetPasswordEmailDataDto): Promise<boolean> {
+    console.log(`reset password data: ${JSON.stringify(data)}`);
+    return await this.authService.resetPassword(data.email)
+  }
+
+  @Public()
+  @UseGuards(JwtResetPasswordAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Patch('password/reset/callback')
+  async resetPasswordCallback(@Request() req, @Body() data: ResetPasswordDataDto): Promise<boolean> {
+    console.log(`reset password callback user: ${JSON.stringify(req.user)}`);
+    return await this.authService.resetPasswordCallback(req.user.sub, data)
   }
 }

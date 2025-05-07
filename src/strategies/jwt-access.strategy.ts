@@ -3,11 +3,11 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
 import { Request } from 'express';
-import { AuthService } from 'src/modules/auth/auth.service';
+import { StrategiesVerificationService } from 'src/modules/strategies-verification/strategies-verification.service';
 
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy, "jwt-access") {
-  constructor(private readonly authService: AuthService) {
+  constructor(private readonly strategiesVerificationService: StrategiesVerificationService) {
     const jwtSecret = process.env.JWT_SECRET;
     if (jwtSecret === undefined) {
         throw new Error('JWT_SECRET is not defined in the environment variables');
@@ -28,7 +28,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, "jwt-access") 
     }
     // console.log(`JWT Access Guard got access token: ${accessToken}`)
 
-    await this.authService.validateUserJwtAccess(payload.sub, accessToken)
+    await this.strategiesVerificationService.validateUserJwtAccess(payload.sub, accessToken)
     return payload;
   }
 }

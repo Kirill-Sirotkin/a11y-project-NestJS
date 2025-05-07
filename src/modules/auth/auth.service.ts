@@ -1,144 +1,21 @@
 import * as argon2 from 'argon2';
 import { Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../database/database.service';
-import { LoginDataDto } from './dto/login-data.dto';
-import { UserDataDto } from './dto/user-data.dto';
 import { TokenPairDto } from './dto/token-pair.dto';
-import { AccessTokenDto } from './dto/access-token.dto';
-import { JwtPayloadDto } from './dto/jwt-payload.dto';
-import { ResetPasswordToken, Session, VerificationToken } from '@prisma/client';
-import { GoogleUserDataDto } from './dto/google-user-data.dto';
 import { ResendService } from 'nestjs-resend';
 import { RegisterDataDto } from './dto/register-data.dto';
-import { VerifyTokenDto } from './dto/verify-token.dto';
-import { JwtVerifyPayloadDto } from './dto/jwt-verify-payload.dto';
-import { ResetPasswordTokenDto } from './dto/reset-password-token.dto';
+import { TokenGenerationService } from '../token-generation/token-generation.service';
+import { ResetPasswordDataDto } from './dto/reset-password-data.dto';
 
 @Injectable()
 export class AuthService {
     constructor(
         private readonly databaseService: DatabaseService,
-        private readonly jwtService: JwtService,
-        private readonly resendService: ResendService
+        private readonly resendService: ResendService,
+        private readonly tokenGenerationService: TokenGenerationService,
     ) {}
 
-    async validateUserLocal(data: LoginDataDto): Promise<UserDataDto> {
-        // add isVerified check here OR create decorator
-
-        const user = await this.databaseService.getUserByEmail(data.email);
-        if (!user) {
-            throw new NotFoundException('user with provided email not found');
-            // Also log this
-        }
-
-        if (user.isOAuth) {
-            throw new UnauthorizedException('user registered with OAuth provider');
-            // Also log this
-        }
-
-        if (!user.passwordHash) {
-            throw new UnauthorizedException('user password not set');
-            // Also log this
-        }
-
-        const isPasswordValid = await argon2.verify(user.passwordHash, data.password);
-        if (!isPasswordValid) {
-            throw new UnauthorizedException('wrong password');
-            // Also log this
-        }
-
-        const { passwordHash, ...userDto } = user;
-        return userDto as UserDataDto
-    }
-
-    async validateUserJwtAccess(userId: string, accessToken: string): Promise<void> {
-        const session = await this.databaseService.getSessionByUserId(userId)
-        if (!session) {
-            throw new NotFoundException('session not found');
-        }
-
-        const isAccessTokenValid = await argon2.verify(session.accessTokenHash, accessToken);
-        if (!isAccessTokenValid) {
-            throw new UnauthorizedException('access token is invalid');
-        }
-    }
-
-    async validateUserJwtRefresh(userId: string, refreshToken: string): Promise<void> {
-        const session = await this.databaseService.getSessionByUserId(userId)
-        if (!session) {
-            throw new NotFoundException('session not found');
-        }
-
-        const isRefreshTokenValid = await argon2.verify(session.refreshTokenHash, refreshToken);
-        if (!isRefreshTokenValid) {
-            throw new UnauthorizedException('refresh token is invalid');
-        }
-    }
-
-    async validateUserGoogle(userGoogle: GoogleUserDataDto): Promise<UserDataDto> {
-        const emailGoogle = userGoogle.emails[0].value
-        if (!emailGoogle) {
-            throw new InternalServerErrorException('email not provided by google OAuth');
-        }
-
-        const user = await this.databaseService.getUserByEmail(emailGoogle)
-        if (user) {
-            const { passwordHash, ...userDto } = user;
-            return userDto as UserDataDto
-        }
-
-        const newUser = await this.databaseService.createUser(emailGoogle, null, true, true)
-        const { passwordHash, ...userDto } = newUser;
-        return userDto as UserDataDto
-    }
-
-    async validateUserJwtVerify(userId: string, verifyToken: string): Promise<void> {
-        const verificationToken = await this.databaseService.getVerificationTokenByUserId(userId)
-        if (!verificationToken) {
-            throw new NotFoundException('verification token not found');
-        }
-
-        const isVerificationTokenValid = await argon2.verify(verificationToken.tokenHash, verifyToken);
-        if (!isVerificationTokenValid) {
-            throw new UnauthorizedException('verification token is invalid');
-        }
-    }
-
-    async generateTokenPair(user: UserDataDto): Promise<TokenPairDto> {
-        const payload: JwtPayloadDto = {
-            sub: user.id,
-            role: user.role,
-            isActive: user.isActive,
-            isVerified: user.isVerified
-        }
-        
-        const { accessToken } = await this.generateAccessToken(user)
-        const refreshToken = this.jwtService.sign(payload, {
-            expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
-            secret: process.env.JWT_REFRESH_SECRET,
-        })
-
-        return { accessToken, refreshToken }
-    }
-
-    async generateAccessToken(user: UserDataDto): Promise<AccessTokenDto> {
-        const payload: JwtPayloadDto = {
-            sub: user.id,
-            role: user.role,
-            isActive: user.isActive,
-            isVerified: user.isVerified
-        }
-
-        const accessToken = this.jwtService.sign(payload, {
-            expiresIn: process.env.JWT_EXPIRES_IN,
-            secret: process.env.JWT_SECRET,
-        })
-
-        return { accessToken }
-    }
-
-    async overrideSession(userId: string, accessToken: string, refreshToken: string): Promise<void> {
+    private async overrideSession(userId: string, accessToken: string, refreshToken: string): Promise<void> {
         try {
             const accessTokenHash = await argon2.hash(accessToken);
             const refreshTokenHash = await argon2.hash(refreshToken);
@@ -149,25 +26,13 @@ export class AuthService {
         }
     }
 
-    // async overrideAccessToken(userId: string, accessToken: string): Promise<void> {
-    //     try {
-    //         const accessTokenHash = await argon2.hash(accessToken);
-    //         await this.databaseService.overrideAccessToken(userId, accessTokenHash);
-    //     } catch (error) {
-    //         throw new InternalServerErrorException(`failed to override access token: ${error}`)
-    //     }
-    // }
-
-    async deleteSession(userId: string): Promise<Session> {
-        return this.databaseService.deleteSession(userId);
-    }
-
-    async registerLocalUser(data: RegisterDataDto): Promise<UserDataDto> {
+    async register(data: RegisterDataDto): Promise<TokenPairDto> {
         try {
-            const passwordHashNew = await argon2.hash(data.password);
-            const user = await this.databaseService.createUser(data.email, passwordHashNew, false, false);
+            const registerPasswordHash = await argon2.hash(data.password);
+            const user = await this.databaseService.createUser(data.email, registerPasswordHash, false, false);
             const { passwordHash, ...userDto } = user;
-            const { verifyToken } = await this.generateVerifyToken(userDto.id);
+
+            const { verifyToken } = await this.tokenGenerationService.generateVerifyToken(userDto.id);
             const tokenHash = await argon2.hash(verifyToken);
             this.databaseService.overrideVerificationToken(userDto.id, tokenHash);
     
@@ -178,38 +43,31 @@ export class AuthService {
                 text: `Please verify your email by clicking the link:\n\n${process.env.VERIFICATION_CALLBACK_URL}?verificationToken=${verifyToken}`,
             });
             
-            return userDto as UserDataDto
+            const { accessToken } = await this.tokenGenerationService.generateAccessToken(userDto.id);
+            const { refreshToken } = await this.tokenGenerationService.generateRefreshToken(userDto.id);
+
+            this.overrideSession(userDto.id, accessToken, refreshToken);
+
+            return { accessToken, refreshToken}
         } catch (error) {
             throw new InternalServerErrorException(`failed to register new user: ${error}`)
         }
     }
 
-    async generateVerifyToken(userId: string): Promise<VerifyTokenDto> {
-        const payload: JwtVerifyPayloadDto = {
-            sub: userId,
-        }
-
-        const verifyToken = this.jwtService.sign(payload, {
-            expiresIn: process.env.JWT_VERIFY_EXPIRES_IN,
-            secret: process.env.JWT_VERIFY_SECRET,
-        })
-
-        return { verifyToken }
-    }
-
-    async confirmEmailVerification(userId: string): Promise<UserDataDto> {
+    async verify(userId: string): Promise<boolean> {
         const user = await this.databaseService.getUserById(userId);
         if (!user) {
             throw new NotFoundException('user not found');
         }
 
-        const updatedUser = await this.databaseService.updateUserIsVerified(userId, true);
-        const { passwordHash, ...userDto } = updatedUser;
-        return userDto as UserDataDto
+        await this.databaseService.updateUserIsVerified(userId, true);
+        return true
     }
 
-    async resendEmailVerification(userId: string, verifyToken: string): Promise<void> {
+    async resendVerification(userId: string): Promise<boolean> {
         try {
+            const { verifyToken } = await this.tokenGenerationService.generateVerifyToken(userId);
+
             const user = await this.databaseService.getUserById(userId);
             if (!user) {
                 throw new NotFoundException('user not found');
@@ -226,21 +84,79 @@ export class AuthService {
                 subject: 'A11yReport Email Verification',
                 text: `Please verify your email by clicking the link:\n\n${process.env.VERIFICATION_CALLBACK_URL}?verificationToken=${verifyToken}`,
             });
+
+            return true
         } catch (error) {
             throw new InternalServerErrorException(`failed to override verification token: ${error}`)
         }
     }
 
-    async generateResetPasswordToken(userId: string): Promise<ResetPasswordTokenDto> {
-        const payload: JwtVerifyPayloadDto = {
-            sub: userId,
+    async login(userId: string): Promise<TokenPairDto> {
+        const { accessToken } = await this.tokenGenerationService.generateAccessToken(userId);
+        const { refreshToken } = await this.tokenGenerationService.generateRefreshToken(userId);
+        this.overrideSession(userId, accessToken, refreshToken);
+        return { accessToken, refreshToken }
+    }
+
+    async refresh(userId: string): Promise<TokenPairDto> {
+        const { accessToken } = await this.tokenGenerationService.generateAccessToken(userId);
+        const { refreshToken } = await this.tokenGenerationService.generateRefreshToken(userId);
+        this.overrideSession(userId, accessToken, refreshToken);
+        return { accessToken, refreshToken }
+    }
+
+    async logout(userId: string): Promise<boolean> {
+        await this.databaseService.deleteSession(userId);
+        return true
+    }
+
+    async googleCallback(userId: string): Promise<TokenPairDto> {
+        const { accessToken } = await this.tokenGenerationService.generateAccessToken(userId);
+        const { refreshToken } = await this.tokenGenerationService.generateRefreshToken(userId);
+        this.overrideSession(userId, accessToken, refreshToken);
+        return { accessToken, refreshToken }
+    }
+
+    async resetPassword(email: string): Promise<boolean> {
+        try {
+            const user = await this.databaseService.getUserByEmail(email);
+            if (!user) {
+                // log the error but don't throw an exception to avoid leaking user data
+                return true
+            }
+    
+            const { resetPasswordToken } = await this.tokenGenerationService.generateResetPasswordToken(user.id);
+            const tokenHash = await argon2.hash(resetPasswordToken);
+            await this.databaseService.overrideResetPasswordToken(user.id, tokenHash);
+    
+            await this.resendService.send({
+                from: 'no-reply@a11y-server.xyz',
+                to: user.email,
+                subject: 'A11yReport Password Reset',
+                text: `Password reset was requested for this account.\nIf this wasn't you, you can ignore this email.\nTo reset the password, please follow this link:\n\n${process.env.RESET_PASSWORD_CALLBACK_URL}?resetPasswordToken=${resetPasswordToken}`,
+            });
+
+            return true
+        } catch (error) {
+            return true
         }
+    }
 
-        const resetPasswordToken = this.jwtService.sign(payload, {
-            expiresIn: process.env.JWT_VERIFY_EXPIRES_IN,
-            secret: process.env.JWT_VERIFY_SECRET,
-        })
+    async resetPasswordCallback(userId: string, passwords: ResetPasswordDataDto): Promise<boolean> {
+        try {
+            const user = await this.databaseService.getUserById(userId);
+            if (!user) {
+                throw new NotFoundException('user not found');
+            }
+    
+            const passwordHash = await argon2.hash(passwords.password);
+            await this.databaseService.updateUserPasswordHash(user.id, passwordHash);
+    
+            console.log(`old password hash: ${user.passwordHash}; new hash: ${passwordHash}`)
 
-        return { resetPasswordToken }
+            return true
+        } catch (error) {
+            throw new InternalServerErrorException(`failed to reset password: ${error}`)
+        }
     }
 }

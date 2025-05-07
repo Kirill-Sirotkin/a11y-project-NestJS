@@ -123,22 +123,6 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
         })
     }
 
-    // async overrideAccessToken(
-    //     userId: string, 
-    //     accessTokenHash: string
-    // ): Promise<Session> {
-    //     return this.$transaction(async (prisma) => {
-    //         const session = await this.getSessionByUserId(userId);
-    
-    //         return this.session.update({
-    //             where: { id: session.id },
-    //             data: {
-    //                 accessTokenHash,
-    //             },
-    //         });
-    //     })
-    // }
-
     async deleteSession(userId: string): Promise<Session> {
         const session = await this.getSessionByUserId(userId);
 

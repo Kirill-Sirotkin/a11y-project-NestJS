@@ -3,11 +3,11 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
 import { Request } from 'express';
-import { AuthService } from 'src/modules/auth/auth.service';
+import { StrategiesVerificationService } from 'src/modules/strategies-verification/strategies-verification.service';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, "jwt-refresh") {
-  constructor(private readonly authService: AuthService) {
+  constructor(private readonly strategiesVerificationService: StrategiesVerificationService) {
     const jwtSecret = process.env.JWT_REFRESH_SECRET;
     if (jwtSecret === undefined) {
         throw new Error('JWT_REFRESH_SECRET is not defined in the environment variables');
@@ -29,7 +29,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, "jwt-refresh"
     // console.log(`JWT refresh Guard got refresh token: ${refreshToken}`)
     
     // console.log(`[SUB]: ${JSON.stringify(payload)}`)
-    await this.authService.validateUserJwtRefresh(payload.sub, refreshToken)
+    await this.strategiesVerificationService.validateUserJwtRefresh(payload.sub, refreshToken)
     return payload;
   }
 }
