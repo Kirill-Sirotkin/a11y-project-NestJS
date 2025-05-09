@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, User, Report, Session, Prisma, VerificationToken, ResetPasswordToken } from '@prisma/client';
+import { PrismaClient, User, Report, Session, Prisma, VerificationToken, ResetPasswordToken, ReportStatus } from '@prisma/client';
 
 @Injectable()
 export class DatabaseService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -275,5 +275,20 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
         }
 
         return report
+    }
+
+    async updateReportStatusById(id: string, status: ReportStatus): Promise<Report> {
+        const report = await this.report.findUnique({
+            where: { id },
+        })
+
+        if (!report) {
+            throw new NotFoundException('report not found');
+        }
+
+        return this.report.update({
+            where: { id },
+            data: { status }
+        })
     }
 }

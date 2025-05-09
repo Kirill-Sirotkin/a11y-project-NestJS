@@ -6,10 +6,15 @@ import { ReportModule } from './modules/report/report.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { ReportGenerationModule } from './modules/report-generation/report-generation.module';
 import { JwtAccessAuthGuard } from './guards/jwt-access-auth.guard';
-import { TokenGenerationService } from './modules/token-generation/token-generation.service';
 import { TokenGenerationModule } from './modules/token-generation/token-generation.module';
 import { JwtModule } from '@nestjs/jwt';
 import { StrategiesVerificationModule } from './modules/strategies-verification/strategies-verification.module';
+import { BullModule } from '@nestjs/bullmq';
+import { ACCESSIBILITY_ANALYSIS_QUEUE, REPORT_GENERATION_QUEUE } from './common/constants';
+import { AccessibilityWorker } from './queue-processing/workers/accessibility.worker';
+import { ReportWorker } from './queue-processing/workers/report.worker';
+import { AccessibilityQueueEventsListener } from './queue-processing/event-listeners/accessibility-queue.events';
+import { ReportQueueEventsListener } from './queue-processing/event-listeners/report-queue.events';
 
 @Module({
   imports: [
@@ -25,13 +30,29 @@ import { StrategiesVerificationModule } from './modules/strategies-verification/
     JwtModule.register({
       global: true,
     }), 
+    BullModule.forRoot({
+      connection: { host: 'localhost', port: 6379, },
+      defaultJobOptions: {
+        attempts: 1,
+        backoff: 1000,
+        delay: 1000,
+      }
+    }),
+    BullModule.registerQueue(
+      { name: ACCESSIBILITY_ANALYSIS_QUEUE, },
+      { name: REPORT_GENERATION_QUEUE, },
+    ),
   ],
   controllers: [AppController],
   providers: [
     {
       provide: 'APP_GUARD',
       useClass: JwtAccessAuthGuard
-    }
+    },
+    AccessibilityWorker,
+    ReportWorker,
+    AccessibilityQueueEventsListener,
+    ReportQueueEventsListener
   ],
 })
 export class AppModule {}
