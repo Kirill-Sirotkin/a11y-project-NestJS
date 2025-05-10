@@ -7,6 +7,7 @@ import { Job, Queue } from 'bullmq';
 import { AccessibilityAnalysisDto } from './dto/accessibility-analysis.dto';
 import { ReportGenerationDto } from './dto/report-generation.dto';
 import { ACCESSIBILITY_ANALYSIS_QUEUE, QueueName, REPORT_GENERATION_QUEUE } from 'src/common/constants';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class ReportService {
@@ -81,5 +82,10 @@ export class ReportService {
             // log error
         }
         await this.databaseService.updateReportStatusById(job.data.reportId, status);
+    }
+
+    @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON)
+    async scheduledEmail(): Promise<void> {
+        console.log('email!')
     }
 }

@@ -15,6 +15,7 @@ import { AccessibilityWorker } from './queue-processing/workers/accessibility.wo
 import { ReportWorker } from './queue-processing/workers/report.worker';
 import { AccessibilityQueueEventsListener } from './queue-processing/event-listeners/accessibility-queue.events';
 import { ReportQueueEventsListener } from './queue-processing/event-listeners/report-queue.events';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ReportQueueEventsListener } from './queue-processing/event-listeners/re
       { name: ACCESSIBILITY_ANALYSIS_QUEUE, },
       { name: REPORT_GENERATION_QUEUE, },
     ),
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [
