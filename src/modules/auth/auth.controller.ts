@@ -1,7 +1,19 @@
-import { Request, Controller, Post, UseGuards, HttpStatus, HttpCode, Get, Delete, Response, Body, Patch } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/require-await */
+import {
+  Request,
+  Controller,
+  Post,
+  UseGuards,
+  HttpStatus,
+  HttpCode,
+  Get,
+  Delete,
+  Response,
+  Body,
+  Patch,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { TokenPairDto } from './dto/token-pair.dto';
-import { AccessTokenDto } from '../token-generation/dto/access-token.dto';
 import { LocalAuthGuard } from 'src/guards/local-auth.guard';
 import { JwtRefreshAuthGuard } from 'src/guards/jwt-refresh-auth.guard';
 import { GoogleAuthGuard } from 'src/guards/google-auth.guard';
@@ -11,31 +23,38 @@ import { JwtVerifyAuthGuard } from 'src/guards/jwt-verify-auth.guard';
 import { ResetPasswordDataDto } from './dto/reset-password-data.dto';
 import { ResetPasswordEmailDataDto } from './dto/reset-password-email-data.dto';
 import { JwtResetPasswordAuthGuard } from 'src/guards/jwt-reset-password-auth.guard';
+import { UserDataDto } from './dto/user-data.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-  
+
+  @Get('confirm-token')
+  async confirmToken(): Promise<boolean> {
+    return true;
+  }
+
   @Public()
   @Post('register')
   async register(@Body() data: RegisterDataDto): Promise<TokenPairDto> {
     console.log(`register data: ${JSON.stringify(data)}`);
-    return await this.authService.register(data)
+    return await this.authService.register(data);
   }
 
   @Public()
   @UseGuards(JwtVerifyAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @Patch('verify/callback')
-  async verifyCallback(@Request() req): Promise<boolean> {
+  @Get('verify/callback')
+  async verifyCallback(@Request() req, @Response() res): Promise<void> {
     console.log(`verify user: ${JSON.stringify(req.user)}`);
-    return await this.authService.verify(req.user.sub)
+    await this.authService.verify(req.user.sub);
+    res.redirect(`${process.env.FRONTEND_URL}/verify/callback`);
   }
 
   @Get('verify/resend')
   async resendVerification(@Request() req): Promise<boolean> {
     console.log(`resendVerification user: ${JSON.stringify(req.user)}`);
-    return await this.authService.resendVerification(req.user.sub)
+    return await this.authService.resendVerification(req.user.sub);
   }
 
   @Public()
@@ -44,23 +63,23 @@ export class AuthController {
   @Post('login')
   async login(@Request() req): Promise<TokenPairDto> {
     console.log(`login user: ${JSON.stringify(req.user)}`);
-    return await this.authService.login(req.user.id)
+    return await this.authService.login(req.user.id);
   }
 
   @Public()
   @UseGuards(JwtRefreshAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  async refresh(@Request() req): Promise<AccessTokenDto> {
+  async refresh(@Request() req): Promise<TokenPairDto> {
     console.log(`refresh user: ${JSON.stringify(req.user)}`);
-    return await this.authService.refresh(req.user.sub)
+    return await this.authService.refresh(req.user.sub);
   }
 
   @HttpCode(HttpStatus.OK)
   @Delete('logout')
   async logout(@Request() req): Promise<boolean> {
     console.log(`logout user: ${JSON.stringify(req.user)}`);
-    return await this.authService.logout(req.user.sub)
+    return await this.authService.logout(req.user.sub);
   }
 
   @Public()
@@ -73,24 +92,38 @@ export class AuthController {
   @Get('google/callback')
   async googleCallback(@Request() req, @Response() res): Promise<void> {
     console.log(`googleCallback user: ${JSON.stringify(req.user)}`);
-    const tokenPair = await this.authService.googleCallback(req.user.sub);
-    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?accessToken=${tokenPair.accessToken}&refreshToken=${tokenPair.refreshToken}`);
+    const tokenPair = await this.authService.googleCallback(req.user.id);
+    res.redirect(
+      `${process.env.FRONTEND_URL}/auth/callback?accessToken=${tokenPair.accessToken}&refreshToken=${tokenPair.refreshToken}`,
+    );
   }
 
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('password/reset')
-  async resetPassword(@Body() data: ResetPasswordEmailDataDto): Promise<boolean> {
+  async resetPassword(
+    @Body() data: ResetPasswordEmailDataDto,
+  ): Promise<boolean> {
     console.log(`reset password data: ${JSON.stringify(data)}`);
-    return await this.authService.resetPassword(data.email)
+    return await this.authService.resetPassword(data.email);
   }
 
   @Public()
   @UseGuards(JwtResetPasswordAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Patch('password/reset/callback')
-  async resetPasswordCallback(@Request() req, @Body() data: ResetPasswordDataDto): Promise<boolean> {
+  async resetPasswordCallback(
+    @Request() req,
+    @Body() data: ResetPasswordDataDto,
+  ): Promise<boolean> {
     console.log(`reset password callback user: ${JSON.stringify(req.user)}`);
-    return await this.authService.resetPasswordCallback(req.user.sub, data)
+    return await this.authService.resetPasswordCallback(req.user.sub, data);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('profile-info')
+  async profileInfo(@Request() req): Promise<UserDataDto> {
+    console.log(`profileInfo user: ${JSON.stringify(req.user)}`);
+    return await this.authService.profileInfo(req.user.sub);
   }
 }

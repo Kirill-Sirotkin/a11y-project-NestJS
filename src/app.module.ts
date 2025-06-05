@@ -10,7 +10,10 @@ import { TokenGenerationModule } from './modules/token-generation/token-generati
 import { JwtModule } from '@nestjs/jwt';
 import { StrategiesVerificationModule } from './modules/strategies-verification/strategies-verification.module';
 import { BullModule } from '@nestjs/bullmq';
-import { ACCESSIBILITY_ANALYSIS_QUEUE, REPORT_GENERATION_QUEUE } from './common/constants';
+import {
+  ACCESSIBILITY_ANALYSIS_QUEUE,
+  REPORT_GENERATION_QUEUE,
+} from './common/constants';
 import { AccessibilityWorker } from './queue-processing/workers/accessibility.worker';
 import { ReportWorker } from './queue-processing/workers/report.worker';
 import { AccessibilityQueueEventsListener } from './queue-processing/event-listeners/accessibility-queue.events';
@@ -19,29 +22,29 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    AuthModule, 
-    ReportModule, 
-    DatabaseModule, 
+    AuthModule,
+    ReportModule,
+    DatabaseModule,
     ReportGenerationModule,
     TokenGenerationModule,
     StrategiesVerificationModule,
     ResendModule.forRoot({
-      apiKey:process.env.MAIL_API_KEY || '',
-    }), 
+      apiKey: process.env.MAIL_API_KEY || '',
+    }),
     JwtModule.register({
       global: true,
-    }), 
+    }),
     BullModule.forRoot({
-      connection: { host: 'localhost', port: 6379, },
+      connection: { host: 'localhost', port: 6379 },
       defaultJobOptions: {
         attempts: 1,
         backoff: 1000,
         delay: 1000,
-      }
+      },
     }),
     BullModule.registerQueue(
-      { name: ACCESSIBILITY_ANALYSIS_QUEUE, },
-      { name: REPORT_GENERATION_QUEUE, },
+      { name: ACCESSIBILITY_ANALYSIS_QUEUE },
+      { name: REPORT_GENERATION_QUEUE },
     ),
     ScheduleModule.forRoot(),
   ],
@@ -49,12 +52,12 @@ import { ScheduleModule } from '@nestjs/schedule';
   providers: [
     {
       provide: 'APP_GUARD',
-      useClass: JwtAccessAuthGuard
+      useClass: JwtAccessAuthGuard,
     },
     AccessibilityWorker,
     ReportWorker,
     AccessibilityQueueEventsListener,
-    ReportQueueEventsListener
+    ReportQueueEventsListener,
   ],
 })
 export class AppModule {}

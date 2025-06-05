@@ -1,4 +1,4 @@
 export class ResetPasswordDataDto {
-    password: string;
-    repeatPassword: string;
+  password: string;
+  repeatPassword: string;
 }

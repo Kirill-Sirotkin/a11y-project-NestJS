@@ -1,3 +1,3 @@
 export class ResetPasswordEmailDataDto {
-    email: string;
+  email: string;
 }

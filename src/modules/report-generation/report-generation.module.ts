@@ -3,6 +3,6 @@ import { ReportGenerationService } from './report-generation.service';
 
 @Module({
   providers: [ReportGenerationService],
-  exports: [ReportGenerationService]
+  exports: [ReportGenerationService],
 })
 export class ReportGenerationModule {}

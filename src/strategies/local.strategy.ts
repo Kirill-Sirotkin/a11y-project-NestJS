@@ -6,13 +6,16 @@ import { StrategiesVerificationService } from 'src/modules/strategies-verificati
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
-    constructor(private readonly strategiesVerificationService: StrategiesVerificationService) {
-        super(
-            { usernameField: 'email' },
-        );
-    }
+  constructor(
+    private readonly strategiesVerificationService: StrategiesVerificationService,
+  ) {
+    super({ usernameField: 'email' });
+  }
 
-    async validate(email: string, password: string): Promise<UserDataDto> {
-        return await this.strategiesVerificationService.validateUserLocal({ email, password })
-    }
+  async validate(email: string, password: string): Promise<UserDataDto> {
+    return await this.strategiesVerificationService.validateUserLocal({
+      email,
+      password,
+    });
+  }
 }

@@ -1,3 +1,3 @@
 export class VerifyTokenDto {
-    verifyToken: string;
+  verifyToken: string;
 }

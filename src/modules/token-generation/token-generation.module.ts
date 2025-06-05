@@ -3,6 +3,6 @@ import { TokenGenerationService } from './token-generation.service';
 
 @Module({
   providers: [TokenGenerationService],
-  exports: [TokenGenerationService]
+  exports: [TokenGenerationService],
 })
 export class TokenGenerationModule {}

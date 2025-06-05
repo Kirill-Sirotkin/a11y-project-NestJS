@@ -1,3 +1,3 @@
 export class NewReportDto {
-    domain: string;
+  domain: string;
 }

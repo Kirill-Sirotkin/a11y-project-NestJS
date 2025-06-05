@@ -1,3 +1,3 @@
 export class ResetPasswordTokenDto {
-    resetPasswordToken: string;
+  resetPasswordToken: string;
 }
