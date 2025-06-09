@@ -26,7 +26,7 @@ export class ReportQueueEventsListener extends QueueEventsHost {
   }): Promise<void> {
     // log this
     console.log(`[report] completed job ${job.jobId}`);
-    this.reportService.queueUpdateReportStatus(
+    await this.reportService.queueUpdateReportStatus(
       job.jobId,
       QueueName.ReportQueue,
       'COMPLETED',
@@ -41,7 +41,7 @@ export class ReportQueueEventsListener extends QueueEventsHost {
   }): Promise<void> {
     // log this
     console.log(`[report] failed job ${job.jobId}`);
-    this.reportService.queueUpdateReportStatus(
+    await this.reportService.queueUpdateReportStatus(
       job.jobId,
       QueueName.ReportQueue,
       'FAILED',

@@ -64,6 +64,7 @@ export class ReportGenerationService {
       'normal',
       `${results.url}`,
     );
+    console.log(`RESULTS URL: ${results.url}`);
 
     doc.setFontSize(FONT_SIZE_SMALL);
     doc.text(

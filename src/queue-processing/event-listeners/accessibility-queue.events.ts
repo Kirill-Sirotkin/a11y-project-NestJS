@@ -32,7 +32,7 @@ export class AccessibilityQueueEventsListener extends QueueEventsHost {
   }): Promise<void> {
     // log this
     console.log(`[accessibility] completed job ${job.jobId}`);
-    this.reportService.queueAddReportGenerationJob(job.returnvalue);
+    await this.reportService.queueAddReportGenerationJob(job.returnvalue);
   }
 
   @OnQueueEvent('failed')
@@ -43,7 +43,7 @@ export class AccessibilityQueueEventsListener extends QueueEventsHost {
   }): Promise<void> {
     // log this
     console.log(`[accessibility] failed job ${job.jobId}`);
-    this.reportService.queueUpdateReportStatus(
+    await this.reportService.queueUpdateReportStatus(
       job.jobId,
       QueueName.AccessibilityQueue,
       'FAILED',
